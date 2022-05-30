@@ -26,8 +26,9 @@ public:
 	void PostLoad() override;
 	void PostActorCreated() override;
 	void CreateMesh();
-	void GenerateNoiseMap();
-	
+	void GenerateTopNoiseMap(TArray<TArray<float>> &Map);
+	void GenerateBottomNoiseMap(TArray<TArray<float>> &Map);
+
 	#if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	#endif // WITH_EDITOR
@@ -43,16 +44,27 @@ private:
 	UPROPERTY(EditAnywhere,Category="Map props");
 	float MapScale=25.0f;
 	UPROPERTY(EditAnywhere,Category="Map props");
-	int MapOctaves=2;
-	UPROPERTY(EditAnywhere,Category="Map props");
-	float MapPersistance=0.5f;
-	UPROPERTY(EditAnywhere,Category="Map props");
-	float MapLacunarity=2.0f;
-	UPROPERTY(EditAnywhere,Category="Map props");
 	int MapSeed=0;
-	UPROPERTY(EditAnywhere,Category="Map props");
-	float MapHighMultipier=15.0f;
 	
-	TArray<TArray<float>> NoiseMap;
+	UPROPERTY(EditAnywhere,Category="BottomMap props");
+	int BottomMapOctaves=2;
+	UPROPERTY(EditAnywhere,Category="BottomMap props");
+	float BottomMapPersistance=0.5f;
+	UPROPERTY(EditAnywhere,Category="BottomMap props");
+	float BottomMapLacunarity=2.0f;
+	UPROPERTY(EditAnywhere,Category="BottomMap props");
+	float BottomMapHighMultipier=15.0f;
+
+	UPROPERTY(EditAnywhere,Category="TopMap props");
+	int TopMapOctaves=3;
+	UPROPERTY(EditAnywhere,Category="TopMap props");
+	float TopMapPersistance=0.5f;
+	UPROPERTY(EditAnywhere,Category="TopMap props");
+	float TopMapLacunarity=2.0f;
+	UPROPERTY(EditAnywhere,Category="TopMap props");
+	float TopMapHighMultipier=25.0f;
+	
+	TArray<TArray<float>> NoiseMapB;
+	TArray<TArray<float>> NoiseMapT;
 
 };
