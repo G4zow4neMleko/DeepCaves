@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "ProceduralMeshComponent.h"
+#include "Components/PointLightComponent.h"
+#include "Engine/PointLight.h"
 #include "CustomMeshGenerator.generated.h"
 
 UCLASS()
@@ -28,6 +30,7 @@ public:
 	void CreateMesh();
 	void GenerateTopNoiseMap(TArray<TArray<float>> &Map);
 	void GenerateBottomNoiseMap(TArray<TArray<float>> &Map);
+	void CalculateLightPos();
 
 	#if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -38,13 +41,15 @@ private:
 	UProceduralMeshComponent * mesh;
 	
 	UPROPERTY(EditAnywhere,Category="Map props");
-	int MapWidth=100;
+	int MapWidth=50;
 	UPROPERTY(EditAnywhere,Category="Map props");
-	int MapHeight=100;
+	int MapHeight=50;
 	UPROPERTY(EditAnywhere,Category="Map props");
 	float MapScale=25.0f;
 	UPROPERTY(EditAnywhere,Category="Map props");
 	int MapSeed=0;
+	UPROPERTY(EditAnywhere,Category="Map props");
+	bool CalculateLight=false;
 	
 	UPROPERTY(EditAnywhere,Category="BottomMap props");
 	int BottomMapOctaves=2;
@@ -66,5 +71,8 @@ private:
 	
 	TArray<TArray<float>> NoiseMapB;
 	TArray<TArray<float>> NoiseMapT;
-
+	
+	TArray<APointLight*> LightVector;
+	TArray<FVector> positions;
+	//UChildActorComponent L2;
 };

@@ -3,6 +3,8 @@
 
 #include "CustomMeshGenerator.h"
 #include <limits>
+#include <string>
+
 #include "KismetProceduralMeshLibrary.h"
 
 // Sets default values
@@ -22,7 +24,6 @@ ACustomMeshGenerator::ACustomMeshGenerator()
 void ACustomMeshGenerator::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Called every frame
@@ -65,7 +66,7 @@ void ACustomMeshGenerator::CreateMesh()
 	TArray<FProcMeshTangent> tangents;
 	
 	vertices.SetNum(MapWidth*MapHeight*2);
-	triangles.SetNum((MapWidth-1)*(MapHeight-1)*6 *2);
+	triangles.SetNum((MapWidth-1)*(MapHeight-1)*6 *2 +6);
 	UV0.SetNum(MapWidth*MapHeight*2);
 	normals.Init(FVector(0,0,0),MapWidth*MapHeight*2);
 	tangents.Init(FProcMeshTangent(0, 0, 0), MapWidth*MapHeight*2);
@@ -83,10 +84,10 @@ void ACustomMeshGenerator::CreateMesh()
 		{
 			// noiseMap to heightMap
 			
-			vertices[vertexIndex] = FVector(topLeftX + x, topLeftY - y, NoiseMapB[y][x]*BottomMapHighMultipier);
+			vertices[vertexIndex] = FVector(topLeftX + x, topLeftY - y, NoiseMapB[x][y]*BottomMapHighMultipier);
 			UV0[vertexIndex] = FVector2D(x/(float)MapWidth, y/(float)MapHeight);
 
-			vertices[verticesHalfIndex + vertexIndex] = FVector(topLeftX + x, topLeftY - y, NoiseMapT[y][x]*TopMapHighMultipier+TopMapHighMultipier/2);
+			vertices[verticesHalfIndex + vertexIndex] = FVector(topLeftX + x, topLeftY - y, NoiseMapT[x][y]*TopMapHighMultipier+TopMapHighMultipier/2);
 			UV0[verticesHalfIndex + vertexIndex] = FVector2D(x/(float)MapWidth, y/(float)MapHeight);
 			
 			
@@ -113,33 +114,6 @@ void ACustomMeshGenerator::CreateMesh()
 			vertexIndex++;
 		}
 	}
-
-	/*triangleIndex = triangles.Num()-1;
-	for(int y=0; y<MapHeight; ++y){
-		for(int x=0; x<MapWidth; ++x)
-		{
-			// noiseMap to heightMap
-			
-			vertices[vertexIndex] = FVector(topLeftX + x, topLeftY - y, NoiseMapT[y][x]*TopMapHighMultipier+TopMapHighMultipier/2);
-			UV0[vertexIndex] = FVector2D(x/(float)MapWidth, y/(float)MapHeight);
-			
-			//vertexColors.Emplace(FLinearColor(0.75, 0.75, 0.75, 1.0));
-			
-			if( x < (MapWidth-1) && y < (MapHeight-1) )
-			{
-				triangles[triangleIndex] = vertexIndex;
-				triangles[triangleIndex-1] = vertexIndex + MapWidth +1;
-				triangles[triangleIndex-2] = vertexIndex + MapWidth;
-				triangleIndex -= 3;
-				
-				triangles[triangleIndex] = vertexIndex + MapWidth +1;
-				triangles[triangleIndex-1] = vertexIndex;
-				triangles[triangleIndex-2] = vertexIndex + 1;
-				triangleIndex -= 3;
-			}
-			vertexIndex++;
-		}
-	}*/
 	
 	UKismetProceduralMeshLibrary::CalculateTangentsForMesh(vertices, triangles, UV0,normals,tangents);
 	
@@ -147,6 +121,9 @@ void ACustomMeshGenerator::CreateMesh()
         
 	// Enable collision data
 	mesh->ContainsPhysicsTriMeshData(true);
+	
+	if(CalculateLight)
+		CalculateLightPos();
 }
 
 void ACustomMeshGenerator::GenerateBottomNoiseMap(TArray<TArray<float>> &Map)
@@ -156,11 +133,11 @@ void ACustomMeshGenerator::GenerateBottomNoiseMap(TArray<TArray<float>> &Map)
 	if(MapHeight > 120)
 		MapHeight = 120;
 	
-	Map.SetNum(MapHeight);
+	Map.SetNum(MapWidth);
 	for(auto &row : Map)
 	{
 		row.SetNum(0);
-		row.Init(0, MapWidth);
+		row.Init(0, MapHeight);
 	}
 	
 	if(MapSeed == 0)
@@ -206,7 +183,7 @@ void ACustomMeshGenerator::GenerateBottomNoiseMap(TArray<TArray<float>> &Map)
 			/*else if(noiseHeight < minNoiseHeight)
 				minNoiseHeight = noiseHeight;*/
 			
-			Map[y][x] = noiseHeight; 
+			Map[x][y] = noiseHeight; 
 		}
 	}
 	/*for(int y=0; y<MapHeight; ++y)
@@ -223,11 +200,11 @@ void ACustomMeshGenerator::GenerateTopNoiseMap(TArray<TArray<float>> &Map)
 	if(MapHeight > 120)
 		MapHeight = 120;
 	
-	Map.SetNum(MapHeight);
+	Map.SetNum(MapWidth);
 	for(auto &row : Map)
 	{
 		row.SetNum(0);
-		row.Init(0, MapWidth);
+		row.Init(0, MapHeight);
 	}
 	
 	if(MapSeed == 0)
@@ -244,9 +221,6 @@ void ACustomMeshGenerator::GenerateTopNoiseMap(TArray<TArray<float>> &Map)
 	}
 	
 	if(MapScale <= 0.0f){MapScale = 0.0001f;}
-	/*float maxNoiseHeight = std::numeric_limits<float>::min();
-	float minNoiseHeight = std::numeric_limits<float>::max();*/
-	//constexpr float minNoiseHeight = 0.0f;
 
 	for(int y=0; y<MapHeight; ++y){
 		for(int x=0; x<MapWidth; ++x)
@@ -271,28 +245,97 @@ void ACustomMeshGenerator::GenerateTopNoiseMap(TArray<TArray<float>> &Map)
 			else if(noiseHeight < minNoiseHeight)
 				minNoiseHeight = noiseHeight;*/
 			
-			Map[y][x] = noiseHeight; 
+			Map[x][y] = noiseHeight; 
 		}
 	}
-	/*for(int y=0; y<MapHeight; ++y)
-	{
-		for(int x=0; x<MapWidth; ++x)
-			Map[y][x] = (Map[y][x]+FMath::Abs(minNoiseHeight)) / (FMath::Abs(minNoiseHeight) + FMath::Abs(maxNoiseHeight));
-	}*/
 }
 
 void ACustomMeshGenerator::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
-	if(PropertyChangedEvent.GetPropertyName().ToString().Contains("Top"))
+	if(PropertyChangedEvent.GetPropertyName().ToString().Contains("Light"))
+		CalculateLightPos();
+	else if(PropertyChangedEvent.GetPropertyName().ToString().Contains("Top"))
 		GenerateTopNoiseMap(NoiseMapT);
-	else if(PropertyChangedEvent.GetPropertyName().ToString().Contains("Bottom"))
-		GenerateBottomNoiseMap(NoiseMapB);
-	else
+    else if(PropertyChangedEvent.GetPropertyName().ToString().Contains("Bottom"))
+        GenerateBottomNoiseMap(NoiseMapB);
+    else
+    {
+        GenerateTopNoiseMap(NoiseMapT);
+        GenerateBottomNoiseMap(NoiseMapB);
+    }
+    CreateMesh();
+}
+
+void ACustomMeshGenerator::CalculateLightPos()
+{
+	if(CalculateLight)
 	{
-		GenerateTopNoiseMap(NoiseMapT);
-		GenerateBottomNoiseMap(NoiseMapB);
+		float topLeftX = (MapWidth-1)/-2.0f;
+		float topLeftY = (MapHeight-1)/2.0f;
+
+		//FVector R = FVector(MapWidth/3.7,MapHeight/3.7,0);
+		FVector R = FVector(TopMapHighMultipier/1.5);
+
+		positions.SetNum(0);
+	
+		bool posFound = true;
+		bool isOk;
+	
+		while(posFound)
+		{
+			FVector tmpVec = FVector(-999,-999,-999);
+		
+			for(int y=MapHeight*0.1; y<=MapHeight*0.9; ++y){
+				for(int x=MapWidth*0.1; x<=MapWidth*0.9; ++x)
+				{
+					isOk = true;
+					for (auto& v: positions)
+					{
+						if( FVector::DistSquaredXY(v,v+R) > FVector::DistSquaredXY(v,FVector(x,y,0)) )
+							isOk = false;
+					}
+				
+					if( isOk && NoiseMapT[x][y] > tmpVec.Z )
+					{
+						tmpVec.Set(x,y,NoiseMapT[x][y]);
+					}
+				}
+			}
+		
+			if( tmpVec.Equals(FVector(-999,-999,-999),0.1) )
+				posFound = false;
+			else
+				positions.Emplace( FVector(tmpVec) );
+		}
+	
+		for (auto& v: positions)
+		{
+			v.Set( topLeftX + v.X, topLeftY - v.Y, (v.Z*TopMapHighMultipier + TopMapHighMultipier/2 + NoiseMapB[v.X][v.Y]*BottomMapHighMultipier) * 0.4);
+		}
 	}
 	
-	CreateMesh();
+	
+//19000
+	for(int i=0; i<LightVector.Num(); ++i)
+	{
+		LightVector[i]->Destroy();
+	}
+	
+	LightVector.SetNum(0);
+	
+	if(CalculateLight)
+	{
+		for(int i=0; i<positions.Num(); ++i)
+		{
+			LightVector.Emplace( GetWorld()->SpawnActor<APointLight>(APointLight::StaticClass(), GetActorLocation() + positions[i] * GetActorScale3D().Z, FRotator() ));
+			LightVector[i]->AttachToComponent(mesh,FAttachmentTransformRules::KeepWorldTransform,"unit"+i);
+			LightVector[i]->PointLightComponent->SetMobility(EComponentMobility::Movable);
+			LightVector[i]->PointLightComponent->SetIntensity(positions[i].Z * GetActorScale().Z * 15);
+			LightVector[i]->PointLightComponent->SetAttenuationRadius(positions[i].Z * GetActorScale().Z * 2.5);
+			LightVector[i]->PointLightComponent->CastShadows = false;
+			LightVector[i]->SetLightColor(FLinearColor(FVector(FMath::RandRange(0.5f,1.0f), FMath::RandRange(0.5f,0.65f), FMath::RandRange(0.5f,1.0f)) ));
+			//LightVector[i]->PointLightComponent->SetMobility(EComponentMobility::Stationary);
+		}
+	}
 }
